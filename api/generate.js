@@ -1,4 +1,5 @@
-import { Document, Page, Text, View, StyleSheet, Image, renderToStream } from '@react-pdf/renderer';
+// 1. Update the import at the top
+import { Document, Page, Text, View, StyleSheet, Image, renderToBuffer } from '@react-pdf/renderer';
 
 // --- STEP 1: DEFINE STYLES (Your CSS) ---
 const styles = StyleSheet.create({
@@ -88,27 +89,36 @@ const ProposalDocument = ({ data }) => (
   </Document>
 );
 
-// --- STEP 3: THE HANDLER (The Engine) ---
+// 2. Update the handler function
 export default async function handler(req, res) {
-  // Only allow POST requests from our Zoho Widget
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    const dealData = req.body;
-    
-    // Convert the React Component into a PDF Stream
-    const stream = await renderToStream(<ProposalDocument data={dealData} />);
-    
-    // Tell the browser/Zoho it's a PDF
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=proposal.pdf');
-
-    // Send the PDF back
-    stream.pipe(res);
-  } catch (error) {
-    console.error("PDF Error:", error);
-    res.status(500).json({ error: 'Generation Failed' });
-  }
-}
+    // Handle CORS Pre-flight
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      return res.status(200).end();
+    }
+  
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+  
+    try {
+      const dealData = req.body;
+      
+      // Generate the buffer
+      const buffer = await renderToBuffer(<ProposalDocument data={dealData} />);
+      
+      // Headers
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=proposal.pdf');
+      res.setHeader('Access-Control-Allow-Origin', '*'); 
+  
+      // Send the actual binary data
+      return res.end(buffer);
+  
+    } catch (error) {
+      console.error("PDF Generation Error:", error);
+      // This will help us see the actual error in Vercel Logs
+      return res.status(500).send(`Error: ${error.message}`);
+    }
