@@ -12,7 +12,7 @@ async function generateProposal() {
     status.innerText = "Generating PDF Engine...";
 
     // 2. POST the JSON to your Vercel URL
-    const vercelUrl = "https://your-project.vercel.app/api/generate";
+    const vercelUrl = "https://proposal-generator-lovat.vercel.app/api/generate";
     
     const pdfResponse = await fetch(vercelUrl, {
         method: 'POST',
